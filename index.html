@@ -1,0 +1,294 @@
+<html>
+<head>
+	<title>Chain Reaction Game</title>
+	<style type="text/css">
+	body{
+		font-family: cursive;
+	}
+	td {
+		height:50px;
+		width:50px;
+		border:2px solid rgb(191, 214, 65);
+		text-align: center;
+		font-size: bold;
+		cursor:pointer;
+	}
+	#loser{
+		color:#7f4145;
+	}
+	#winner{
+		color:#006e6d;
+	}
+	</style>
+	<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+	<div>
+		<form onsubmit="return false;">
+			Enter number of rows</br>
+			<input type="number" placeholder="More than one rows" id="rows"/></br>
+			Enter number of cols</br>
+			<input type="number" placeholder="More than one cols" id="cols"/></br>
+			Enter number of users to play in between 2 and 5</br>
+			<input type="number" min="2" max="5" placeholder="2-5" id="numuser"/></br>
+			<input type="submit" value="submit" id="incredential"/>
+		</form>
+	</div>
+	<div id="loser"></div></br>
+	<div id="winner"></div></br>
+	<div id="meraTable">
+		
+	</div>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script type="text/javascript">
+		var num=0;
+		var row=10;
+		var col=10;
+		var arr={"0": "rgb(191, 214, 65)","1":"rgb(63, 105, 170)","2":"rgb(255, 111, 97)","3":"rgb(0, 255, 220)","4":"rgb(254, 132, 14)"};
+		var countusers=[0,0,0,0,0];
+		var us=2;
+		var map={};
+		function findLimit(x,y){
+			if((x==row-1 && y==col-1) || (x==0 && y==0) || (x==0 && y==col-1) || (x==row-1 && y==0))
+				return 2;
+			if((x==0 && y>0 && y<col-1) || (x==row-1 && y>0 && y<col-1) || (y==0 && x>0 && x<row-1) || (y==col-1 && x>0 && x<row-1))
+				return 3;
+			if(x>=0 && x<row && y>=0 && y<col)
+				return 4;
+		}
+
+		function checkcord(x,y){
+			if(x>=0 && x<row && y>=0 && y<col)
+				return true;
+		}
+		
+		function makemap(r,c){
+			var ht="<table>";
+			for(var i=0;i<r;i++)
+			{
+				ht+="<tr>";
+				for(var j=0;j<c;j++)
+				{
+					ht+="<td id='index"+i+""+j+"' x-axis='"+i+"' y-axis='"+j+"' class='clicks'>0</td>";
+					map["ind"+i+j]=-1;
+				}
+				ht+="</tr>";
+			}
+			
+			ht+="</table>";
+			$("#meraTable").html(ht);
+		}
+
+//--------------------------------------------------------Game code--------------------------------------------//
+			function game(xa,ya,colr,rec){
+				var thirnext=parseInt($("#index"+xa+ya).html());
+				if(findLimit(xa,ya)==thirnext+1)
+				{
+					countusers[map["ind"+xa+ya]]--;
+					if(countusers[map["ind"+xa+ya]]==0)
+					{
+						delete arr[map["ind"+xa+ya]];
+						//console.log(arr);
+						//alert("PlayerId lost: "+map["ind"+xa+ya]);
+						$("#loser").html("PlayerId: "+map["ind"+xa+ya]+" lost");
+						us--;
+						if(us==1)
+						{
+							//alert("Game Over, User playerId: "+rec+" wins");
+							$("#winner").html("Game Over, User playerId: "+rec+" wins");
+							$("#index"+xa+ya).html('0');
+							$("#index"+xa+ya).css("background-color","rgba(0, 0, 0, 0)");
+							return -2;
+						}
+					}
+					map["ind"+xa+ya]=-1;
+					$("#index"+xa+ya).html('0');
+					$("#index"+xa+ya).css("background-color","rgba(0, 0, 0, 0)");
+					return thirnext;
+				}
+				else
+				{
+					if(map["ind"+xa+ya]!=rec)
+					{
+						if(map["ind"+xa+ya]!=-1)
+						{
+							countusers[map["ind"+xa+ya]]--;
+							if(countusers[map["ind"+xa+ya]]==0)
+							{
+								
+								delete arr[map["ind"+xa+ya]];
+								//console.log(arr);
+								//alert("PlayerId lost: "+map["ind"+xa+ya]);
+								$("#loser").html("PlayerId: "+map["ind"+xa+ya]+" lost");
+								us--;
+								if(us==1)
+								{
+									//alert("Game Over, User playerId: "+rec+" wins");
+									$("#winner").html("Game Over, User playerId: "+rec+" wins");
+									$("#index"+xa+ya).html(thirnext+1);
+									$("#index"+xa+ya).css("background-color",colr);
+									return -2;
+								}
+							}
+						}
+						map["ind"+xa+ya]=rec;
+						countusers[rec]++;
+						$("#index"+xa+ya).html(thirnext+1);
+						$("#index"+xa+ya).css("background-color",colr);
+					}
+					else
+						$("#index"+xa+ya).html(thirnext+1);
+					return 0;
+				}
+			}
+
+
+			function gameplay(x,y,z){
+				var rec=num;
+				var colr=arr[num];
+				//console.log(colr);
+				var currentValue=z;
+				if($("#index"+x+""+y).css("background-color")!=colr)
+				{
+					if($("#index"+x+""+y).css("background-color")=="rgba(0, 0, 0, 0)")
+					{
+						map["ind"+x+y]=num;
+						countusers[num]++;
+					}
+					else
+					{
+						return;
+					}
+				}
+
+				//console.log("click index:"+x+" "+y);
+				if(findLimit(x,y)==currentValue+1)
+				{
+					$("#index"+x+""+y).html('0');
+					countusers[rec]--;
+					map["ind"+x+y]=-1;
+					console.log($("#index"+x+""+y).css("background-color"));
+					$("#index"+x+""+y).css("background-color","rgba(0, 0, 0, 0)");
+					var queue=[];
+					queue.push([x,y,currentValue]);
+					while(queue.length!=0)
+					{
+						var xa=queue[0][0];
+						var ya=queue[0][1];
+						var cu=queue[0][2];
+						//console.log(xa+" "+ya+" "+cu);
+						queue.shift();
+						
+						if(checkcord(xa,ya+1))
+						{
+							var r=game(xa,ya+1,colr,rec);
+							if(r==-2)
+								break;
+							if(r!=0)
+								queue.push([xa,ya+1,r]);
+
+						}
+
+						if(checkcord(xa+1,ya))
+						{
+							var d=game(xa+1,ya,colr,rec);
+							if(d==-2)
+								break;
+							if(d!=0)
+								queue.push([xa+1,ya,d]);
+						}
+
+						if(checkcord(xa,ya-1))
+						{
+							var u=game(xa,ya-1,colr,rec);
+							if(u==-2)
+								break;
+							if(u!=0)
+								queue.push([xa,ya-1,u]);
+						}
+
+						if(checkcord(xa-1,ya))
+						{
+							var l=game(xa-1,ya,colr,rec);
+							if(l==-2)
+								break;
+							if(l!=0)
+								queue.push([xa-1,ya,l]);
+						}
+					}
+				}
+				else
+				{
+					$("#index"+x+""+y).html(currentValue+1);
+					$("#index"+x+""+y).css("background-color",colr);
+					console.log($("#index"+x+""+y).css("background-color"));
+				}
+					var zs=0;
+					var flag=1;
+					var s=0;
+					for(var prop in arr)
+					{
+						zs++;
+						if(prop==num)
+						{
+							flag=zs;
+						}
+					}
+					if(zs==flag)
+					{
+						for(var prop in arr)
+						{
+							num=prop;
+							break;	
+						}
+					}
+					else
+					{
+						for(var prop in arr)
+						{
+							s++;
+							if(s==flag+1)
+							{
+								num=prop;
+								break;	
+							}
+								
+						}
+					}
+				$("td").css("border-color",arr[num]);
+			}
+
+//---------------------------------------------game dode ends here------------------------------------------------			
+
+		$(document).ready(function(){
+			$("#incredential").on('click',function(event){
+				row=$("#rows").val();
+				col=$("#cols").val();
+				us=$("#numuser").val();
+				if(us>="2" && us<="5")
+				{
+					//console.log(row+col+us);
+					makemap(row,col);
+					for(var i=4;i>=us;i--)
+						delete arr[i];
+				}
+				else
+					return;
+			});
+			$(document).on('click','.clicks',function(event){
+				var x=parseInt($(this).attr('x-axis'));
+				var y=parseInt($(this).attr('y-axis'));
+				var currentValue=parseInt($(this).html());
+				socket.emit('clientside',{'x':x,'y':y,'z':currentValue});
+			});
+		})
+			
+	</script>
+	<script>
+		var socket=io();
+		socket.on('serverside',function(data){
+			gameplay(data.x,data.y,data.z);
+		})
+	</script>
+</body>
+</html>
